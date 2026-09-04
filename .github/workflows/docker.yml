@@ -23,6 +23,9 @@ on:
     branches: ["master"]
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+
 permissions:
   contents: read
   packages: write
