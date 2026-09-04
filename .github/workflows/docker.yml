@@ -90,7 +90,10 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ needs.image-name.outputs.name }},push-by-digest=true,name-canonical=true
+          # push=true is required: the action defaults to push=false, so
+          # without it the digests never reach the registry and the
+          # manifest job 404s.
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ needs.image-name.outputs.name }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
