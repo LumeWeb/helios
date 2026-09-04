@@ -54,8 +54,10 @@ jobs:
       matrix:
         include:
           - platform: linux/amd64
+            slug: linux-amd64
             runs-on: ubuntu-latest
           - platform: linux/arm64
+            slug: linux-arm64
             runs-on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs-on }}
     steps:
@@ -103,7 +105,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.platform }}
+          name: digests-${{ matrix.slug }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
