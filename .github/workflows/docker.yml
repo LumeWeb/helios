@@ -160,4 +160,5 @@ jobs:
           IMAGE_NAME: ${{ needs.image-name.outputs.name }}
 
       - name: Inspect manifest
-        run: docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ needs.image-name.outputs.name }}:${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        # tags already contain the full registry/repository:tag ref
+        run: docker buildx imagetools inspect ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
