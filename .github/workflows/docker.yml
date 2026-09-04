@@ -23,10 +23,6 @@ on:
     branches: ["master"]
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 permissions:
   contents: read
   packages: write
@@ -36,8 +32,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # GHCR requires lowercase image paths; github.repository (LumeWeb/helios)
+  # is not, so lowercasing happens in a bash step rather than an expression.
+  image-name:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.name.outputs.name }}
+    steps:
+      - name: Lowercase repository name
+        id: name
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build (${{ matrix.platform }})
+    needs: image-name
     strategy:
       fail-fast: false
       matrix:
@@ -77,7 +85,7 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ needs.image-name.outputs.name }},push-by-digest=true,name-canonical=true
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
@@ -100,7 +108,7 @@ jobs:
   manifest:
     name: Push multi-arch manifest
     if: github.event_name != 'pull_request'
-    needs: build
+    needs: [build, image-name]
     runs-on: ubuntu-latest
     steps:
       - name: Download digests
@@ -118,7 +126,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           registry: ${{ env.REGISTRY }}
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ needs.image-name.outputs.name }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -141,7 +149,7 @@ jobs:
             $(printf "${REGISTRY}/${IMAGE_NAME}@sha256:%s " *)
         env:
           REGISTRY: ${{ env.REGISTRY }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_NAME: ${{ needs.image-name.outputs.name }}
 
       - name: Inspect manifest
-        run: docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        run: docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ needs.image-name.outputs.name }}:${{ fromJSON(steps.meta.outputs.json).tags[0] }}
