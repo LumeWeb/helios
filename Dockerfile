@@ -13,7 +13,7 @@
 ########################
 # Chef: dependency layers
 ########################
-FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1-bookworm AS chef
 WORKDIR /app
 
 FROM chef AS planner
@@ -38,6 +38,7 @@ FROM debian:bookworm-slim AS runtime
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
+      curl \
       tini \
     && rm -rf /var/lib/apt/lists/*
 

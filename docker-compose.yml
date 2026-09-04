@@ -8,16 +8,20 @@
 # State (checkpoint sync data) persists in ./helios-data on the host.
 
 services:
+  # Network is passed as a CLI arg — the `network` flag has no env backing
+  # in the CLI, so setting $NETWORK alone would be ignored.
   helios:
     image: ghcr.io/lumeweb/helios:latest
     restart: unless-stopped
+    command: ["ethereum", "--network", "${NETWORK:-mainnet}"]
+    # Host bind mounts are created root-owned by the Docker daemon and the
+    # container runs as uid 1000. Before first start:
+    #   mkdir -p ./helios-data && sudo chown 1000:1000 ./helios-data
     ports:
       - "${HELIOS_RPC_BIND:-127.0.0.1}:8545:8545"
     volumes:
       - ./helios-data:/data
     environment:
-      # Network: mainnet (default), sepolia, holesky, hoodi
-      NETWORK: ${NETWORK:-mainnet}
       CONSENSUS_RPC: ${CONSENSUS_RPC:-}
       EXECUTION_RPC: ${EXECUTION_RPC:-}
       FALLBACK: ${FALLBACK:-}
