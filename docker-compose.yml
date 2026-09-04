@@ -1,0 +1,40 @@
+# Example: Helios Ethereum light client, containerized.
+#
+#   1. Copy .env.example -> .env, set EXECUTION_RPC (needs eth_getProof).
+#   2. docker compose up -d
+#   3. curl http://localhost:8545 -X POST -H 'Content-Type: application/json' \
+#        -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'
+#
+# State (checkpoint sync data) persists in ./helios-data on the host.
+
+services:
+  helios:
+    image: ghcr.io/lumeweb/helios:latest
+    restart: unless-stopped
+    ports:
+      - "${HELIOS_RPC_BIND:-127.0.0.1}:8545:8545"
+    volumes:
+      - ./helios-data:/data
+    environment:
+      # Network: mainnet (default), sepolia, holesky, hoodi
+      NETWORK: ${NETWORK:-mainnet}
+      CONSENSUS_RPC: ${CONSENSUS_RPC:-}
+      EXECUTION_RPC: ${EXECUTION_RPC:-}
+      FALLBACK: ${FALLBACK:-}
+      LOAD_EXTERNAL_FALLBACK: ${LOAD_EXTERNAL_FALLBACK:-false}
+      CHECKPOINT: ${CHECKPOINT:-}
+      STRICT_CHECKPOINT_AGE: ${STRICT_CHECKPOINT_AGE:-false}
+      # State + RPC defaults are baked into the image:
+      #   DATA_DIR=/data, RPC_BIND_IP=0.0.0.0, RPC_PORT=8545
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -sf http://127.0.0.1:8545 \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' \
+            | grep -q '"id":1'
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
